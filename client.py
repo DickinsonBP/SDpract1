@@ -4,7 +4,7 @@ import sys
 #client.py worker create = 3
 #client.py worker delete  x = 4
 
-proxy = xmlrpc.client.ServerProxy('http://localhost:8000', allow_none=True)
+proxy = xmlrpc.client.ServerProxy('http://localhost:8000')
 if(len(sys.argv) == 3):
     #solo puede ser worker create o worker list
     if(sys.argv[2] == "create"):

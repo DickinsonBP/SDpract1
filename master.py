@@ -2,7 +2,7 @@ from xmlrpc.server import SimpleXMLRPCServer
 import logging
 from multiprocessing import Process
 
-WORKERS = [] #lista de workers
+WORKERS = {} #lista de workers
 WORKER_ID = 0 #indice del worker
 
 logging.basicConfig(level=logging.INFO)
@@ -24,7 +24,7 @@ def create_worker():
 
     proc = Process(target=start_worker, args=(WORKER_ID,))
     proc.start()
-    WORKERS.append(proc)
+    WORKERS[WORKER_ID] = proc
     WORKER_ID += 1
 
     return s
