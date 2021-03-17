@@ -1,9 +1,12 @@
 from xmlrpc.server import SimpleXMLRPCServer
 import logging
 from multiprocessing import Process
+import redis
 
 WORKERS = {} #lista de workers
 WORKER_ID = 0 #indice del worker
+r = None
+cola = "colaTareas"
 
 logging.basicConfig(level=logging.INFO)
 
@@ -15,7 +18,9 @@ server = SimpleXMLRPCServer(
 
 
 def start_worker(name):
-    print("Hola worker No:",name)
+    value = r.lpop(cola)
+    print(value)
+
 
 def create_worker():
     s = 'Creando worker...'
@@ -42,12 +47,23 @@ def list_worker():
     s = str(WORKERS)
     return s
 
+def job(mensaje):
+    global r
+    r.rpush(cola,mensaje)
+
 server.register_function(create_worker)
 server.register_function(delete_worker)
 server.register_function(list_worker)
 
 try:
-    print('User Control-C to exit')
+    print('Use Control-C to exit')
     server.serve_forever()
+    try:
+        r = redis.Redis(
+            host="localhost",
+            port=8000
+            )
+    except Exception as e:
+        print("Error: {}".format(e))
 except KeyboardInterrupt:
     print('Exiting')
