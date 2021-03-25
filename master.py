@@ -6,7 +6,8 @@ import redis
 
 WORKERS = {} #lista de workers
 WORKER_ID = 0 #indice del worker
-r = None
+JOBID = 0 #idetificador del job
+r = redis.Redis(host='localhost',port=6379,db=0)
 cola = "colaTareas"
 
 logging.basicConfig(level=logging.INFO)
@@ -19,12 +20,13 @@ server = SimpleXMLRPCServer(
 
 
 def start_worker(name):
-    value = r.lpop(cola)
-    print(value)
-    while(True){
+    global r
+    global cola
+    while(True):
+        value = r.lpop(cola)
+        if(value!= None):
+            print(value)
         
-    }
-
 
 def create_worker():
     s = 'Creando worker...'
@@ -53,7 +55,16 @@ def list_worker():
 
 def job(mensaje):
     global r
+    global JOBID
+    mensaje.split(' ')
+    t = (JOBID)
+    i=0
+    while(i < len(mensaje)-1)
+        t.append(mensaje[i])
+        i += 1
+
     r.rpush(cola,mensaje)
+    JOBID += 1
 
 server.register_function(create_worker)
 server.register_function(delete_worker)
@@ -63,12 +74,5 @@ server.register_function(job)
 try:
     print('Use Control-C to exit')
     server.serve_forever()
-    try:
-        r = redis.Redis(
-            host="localhost",
-            port=8000
-            )
-    except Exception as e:
-        print("Error: {}".format(e))
 except KeyboardInterrupt:
     print('Exiting')
