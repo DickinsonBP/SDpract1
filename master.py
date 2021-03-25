@@ -56,16 +56,12 @@ def list_worker():
 def job(mensaje):
     global r
     global JOBID
-    mensaje.split(' ')
-    i=0
-    lista=list()
     lista = [JOBID]
-    while(i < len(mensaje)-1):
-        lista.append(mensaje[i])
-        i += 1
-    message=tuple(list)        
+    for i in mensaje.split(' '):
+        lista.append(i)
 
-    r.rpush(cola,message)
+    message=tuple(lista)        
+    r.rpush(cola,*message)
     JOBID += 1
 
 server.register_function(create_worker)
