@@ -1,19 +1,24 @@
-#!/urs/bin/env python3.9
+#!/usr/bin/python3
 from xmlrpc.server import SimpleXMLRPCServer
 import logging
 from multiprocessing import Process
 import redis
+import requests
+import pickle
+import pycurl
+from io import BytesIO
 
 WORKERS = {} #lista de workers
 WORKER_ID = 0 #indice del worker
 JOBID = 0 #idetificador del job
 r = redis.Redis(host='localhost',port=6379,db=0)
+r.flushdb() #limpiar base de datos
 cola = "colaTareas"
 
 logging.basicConfig(level=logging.INFO)
 
 server = SimpleXMLRPCServer(
-    ('localhost',8000),
+    ('localhost',7000),
     logRequests=True,
     allow_none=True
 )
@@ -22,11 +27,30 @@ server = SimpleXMLRPCServer(
 def start_worker(name):
     global r
     global cola
+    lista = list()
     while(True):
-        value = r.lpop(cola)
-        if(value!= None):
-            print(value)
-        
+        value = pickle.loads(r.rpop(cola))
+        if(value is not None):
+            print("Worker {} Value {}".format(name,value))
+            if(value[1] in ("run-countwords")): countWords(value[2])
+            elif (value[1] in ("run-wordcout")): wordCount(value[2])
+       
+
+def countWords(url):
+    curl = pycurl.Curl()
+    buffer = BytesIO()
+    url = url[1:-1]
+    print(url)
+    curl.setopt(curl.URL,url)
+    curl.setopt(curl.WRITEDATA,buffer)
+    curl.perform()
+    curl.close()
+    body = buffer.getvalue()
+    words = body.split()
+    print("Longitud de {} es : {}".format(url,len(words)))
+
+def wordCount(url):
+    return 0
 
 def create_worker():
     s = 'Creando worker...'
@@ -56,15 +80,13 @@ def list_worker():
 def job(mensaje):
     global r
     global JOBID
-    mensaje.split(' ')
-    t = (JOBID)
-    i=0
-    while(i < len(mensaje)-1):
-        t.append(mensaje[i])
-        i += 1
+    lista = [JOBID]
+    for i in mensaje.split(' '):
+        lista.append(i)
 
-    r.rpush(cola,mensaje)
-    print('t = {}'.format(t))
+    message=tuple(lista)        
+    #r.rpush(cola,*message)
+    r.rpush(cola,pickle.dumps(message))
     JOBID += 1
 
 server.register_function(create_worker)

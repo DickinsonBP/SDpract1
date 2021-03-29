@@ -1,11 +1,11 @@
-#!/usr/bin/env python3.9
+#!/usr/bin/python3.9
 import xmlrpc.client
 import sys
 
 #client.py worker create = 3
 #client.py worker delete  x = 4
 
-proxy = xmlrpc.client.ServerProxy('http://localhost:8000')
+proxy = xmlrpc.client.ServerProxy('http://localhost:7000')
 
 if(len(sys.argv) == 3):
     #solo puede ser worker create o worker list
