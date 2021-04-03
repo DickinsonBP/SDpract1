@@ -7,6 +7,9 @@ import requests
 import pickle
 import pycurl
 from io import BytesIO
+from time import sleep
+import warnings
+
 
 WORKERS = {} #lista de workers
 WORKER_ID = 0 #indice del worker
@@ -14,6 +17,8 @@ JOBID = 0 #idetificador del job
 r = redis.Redis(host='localhost',port=6379,db=0)
 r.flushdb() #limpiar base de datos
 cola = "colaTareas"
+
+warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -27,27 +32,33 @@ server = SimpleXMLRPCServer(
 def start_worker(name):
     global r
     global cola
-    lista = list()
     while(True):
+        sleep(10)
         value = pickle.loads(r.rpop(cola))
         if(value is not None):
-            print("Worker {} Value {}".format(name,value))
-            if(value[1] in ("run-countwords")): countWords(value[2])
-            elif (value[1] in ("run-wordcout")): wordCount(value[2])
-       
+            #print("Worker {} Value {}".format(name,value))
+            #obtener lista de archivos
+            archivos = value[2]
+            archivos = archivos[1:-1]
+            archivos = archivos.split(",")
+                
+            if(value[1] in ("run-countwords")): countWords(name,archivos)
+            elif (value[1] in ("run-wordcout")): wordCount(name,archivos)
 
-def countWords(url):
-    curl = pycurl.Curl()
-    buffer = BytesIO()
-    url = url[1:-1]
-    print(url)
-    curl.setopt(curl.URL,url)
-    curl.setopt(curl.WRITEDATA,buffer)
-    curl.perform()
-    curl.close()
-    body = buffer.getvalue()
-    words = body.split()
-    print("Longitud de {} es : {}".format(url,len(words)))
+def countWords(worker,archivos):
+
+    for url in archivos:
+        curl = pycurl.Curl()
+        buffer = BytesIO()
+        curl.setopt(curl.URL,url)
+        curl.setopt(curl.WRITEDATA,buffer)
+        curl.perform()
+        curl.close()
+        body = buffer.getvalue()
+        words = body.split()
+        print("Worker: {} Longitud de {} es : {}".format(worker,url,len(words)))
+        words.clear()
+   
 
 def wordCount(url):
     return 0
@@ -81,7 +92,7 @@ def job(mensaje):
     global r
     global JOBID
     lista = [JOBID]
-    for i in mensaje.split(' '):
+    for i in mensaje.split():
         lista.append(i)
 
     message=tuple(lista)        
