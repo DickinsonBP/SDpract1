@@ -29,23 +29,23 @@ server = SimpleXMLRPCServer(
     allow_none=True
 )
 
-
 def start_worker(name,q):
     global r
     global cola
     while(True):
-        value = pickle.loads(r.rpop(cola))
-        if(value is not None):
-            #obtener lista de archivos
-            archivos = value[2]
-            archivos = archivos[1:-1]
-            archivos = archivos.split(",")
-                
-            if(value[1] in ("run-countwords")): 
-                countWords(name,archivos,q)
-            elif (value[1] in ("run-wordcout")): 
-                wordCount(name,archivos,q)
-        sleep(5)
+        for i in r.keys():
+            if(str(i) in "b'colaTareas'"):
+                value = pickle.loads(r.rpop(cola))
+                #obtener lista de archivos
+                archivos = value[2]
+                archivos = archivos[1:-1]
+                archivos = archivos.split(",")
+                print(archivos)
+                    
+                if(value[1] in ("run-countwords")): 
+                    countWords(name,archivos,q)
+                elif (value[1] in ("run-wordcout")): 
+                    wordCount(name,archivos,q)
 
 def countWords(worker,archivos,pipe):
     result = 0
@@ -59,9 +59,9 @@ def countWords(worker,archivos,pipe):
         body = buffer.getvalue()
         words = body.split()
         result += len(words)
-        s = "Worker: {} Longitud de {} es : {}".format(worker,url,result)
         #print(s)
         words.clear()
+    s = "Worker: {} Longitud de {} es : {}".format(worker,archivos,result)
     q.put(s)
 
 def wordCount(url):
@@ -71,15 +71,12 @@ def create_worker():
     global WORKERS
     global WORKER_ID
     global q
-    #result = ''
-    #i=0
-    #while(i < numWorkers):
+    
     proc = Process(target=start_worker, args=([WORKER_ID,q]))
     print(proc)
     proc.start()
     WORKERS[WORKER_ID] = proc
-    WORKER_ID += 1 
-     #   i+=1
+    WORKER_ID += 1
 
 def delete_worker(index):
     s = 'Borrando worker... {}'.format(index)
@@ -108,12 +105,9 @@ def job(mensaje):
 
 def results():
     global q
-    print(q)
     result = []
-    if(not q.empty()):
+    while(not q.empty()):
         result.append(q.get())
-    else:
-        result.append("No hay resultados")
 
     return result
 

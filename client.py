@@ -6,12 +6,11 @@ import sys
 #client.py worker delete  x = 4
 
 proxy = xmlrpc.client.ServerProxy('http://localhost:7000')
-
 if(len(sys.argv) == 3):
     #solo puede ser worker create o worker list
     if(sys.argv[2] == "create"):
         proxy.create_worker()
-    if(sys.argv[2] == "list"):
+    elif(sys.argv[2] == "list"):
         print(proxy.list_worker())
     else:
         print("Error de sintaxis")
@@ -31,8 +30,8 @@ elif(len(sys.argv) >= 4):
             mensaje+=sys.argv[i]+' '
             i+=1
         proxy.job(mensaje)
-elif(len(sys.argv) == 2):
-    print(proxy.results())
+
+print(proxy.results())
 
 
     
