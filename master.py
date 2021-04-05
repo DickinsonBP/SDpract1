@@ -47,7 +47,7 @@ def start_worker(name,q):
                 elif (value[1] in ("run-wordcout")): 
                     wordCount(name,archivos,q)
 
-def countWords(worker,archivos,pipe):
+def countWords(worker,archivos,q):
     result = 0
     for url in archivos:
         curl = pycurl.Curl()
@@ -85,6 +85,7 @@ def delete_worker(index):
     global WORKERS
 
     WORKERS[index].terminate()
+    WORKERS.pop(index)
     return s
 
 def list_worker():
@@ -94,6 +95,7 @@ def list_worker():
 def job(mensaje):
     global r
     global JOBID
+    print(mensaje)
     lista = [JOBID]
     for i in mensaje.split():
         lista.append(i)

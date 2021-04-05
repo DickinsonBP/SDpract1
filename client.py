@@ -6,32 +6,32 @@ import sys
 #client.py worker delete  x = 4
 
 proxy = xmlrpc.client.ServerProxy('http://localhost:7000')
-if(len(sys.argv) == 3):
-    #solo puede ser worker create o worker list
-    if(sys.argv[2] == "create"):
-        proxy.create_worker()
-    elif(sys.argv[2] == "list"):
-        print(proxy.list_worker())
-    else:
-        print("Error de sintaxis")
-elif(len(sys.argv) >= 4):
-    #solo puede ser los jobs o worker delete
-    '''if(sys.argv[2] == "create"):
-        numWorkers = int(sys.argv[3])
-        print(proxy.create_worker(numWorkers))'''
-    if(sys.argv[1] == "worker") and (sys.argv[2] == "delete"):
-        index = int(sys.argv[3])
-        proxy.delete_worker(index)
-    
-    if(sys.argv[1] == "job"):
-        i=2
-        mensaje = ''
-        while(i < len(sys.argv)):
-            mensaje+=sys.argv[i]+' '
-            i+=1
-        proxy.job(mensaje)
 
-print(proxy.results())
+while True:
+    entrada = input(">")
+    if(entrada == "exit"):
+        break
+    elif(entrada == "worker create"):
+        proxy.create_worker()
+    elif(entrada == "worker list"):
+        print(proxy.list_worker())
+    elif(len(entrada.split()) == 3) and (entrada.split()[1] == "delete"):
+        index = int(entrada.split()[2])
+        print(proxy.delete_worker(index))
+    elif(len(entrada.split()) == 3) and (entrada.split()[0] == "job"):
+        i=1
+        mensaje = ''
+        while(i < len(entrada.split())):
+            mensaje+=entrada.split()[i]+' '
+            i+=1
+        print(mensaje)
+        proxy.job(mensaje)
+    else:
+        if(proxy.results()):
+            print(proxy.results())
+
+        
+
 
 
     
