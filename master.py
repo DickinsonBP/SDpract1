@@ -34,19 +34,15 @@ def start_worker(name,q):
     global r
     global cola
     while(True):
-        value = pickle.loads(r.rpop(cola))
-        if(value is not None):
-            #obtener lista de archivos
-            archivos = value[2]
-            archivos = archivos[1:-1]
-            archivos = archivos.split(",")
-                
-            if(value[1] in ("run-countwords")): 
-                countWords(name,archivos,q)
-            elif (value[1] in ("run-wordcout")): 
-                wordCount(name,archivos,q)
+        for i in r.keys():
+            if(str(i) in "b'colaTareas'"):
+                value = pickle.loads(r.rpop(cola))
+                if(value[1] in ("run-countwords")): 
+                    countWords(name,archivos,q)
+                elif (value[1] in ("run-wordcout")): 
+                    wordCount(name,archivos,q)
         sleep(5)
-        results()
+        #results()
 
 def countWords(worker,archivos,q):
     result = 0
@@ -112,15 +108,22 @@ def list_worker():
     return s
 
 def job(mensaje):
-    #mensaje viene con el formato: job funcion url,url2,..
+    #mensaje viene con el formato: funcion url,url2,..
     global r
     global JOBID
-    mensaje = mensaje.split(',')
-    i = 2
-    for mensj in mensaje.split():
+    mensaje = mensaje.split()
+    print(mensaje)
+    tarea = mensaje[0]
+    archivos = mensaje[1]
+    archivos = archivos[1:-1]
+    archivos = archivos.split(",")
+    print(archivos)
+    #run-countwords [http,http]
+    for arch in archivos:
         lista = [JOBID]
-        lista.append(mensaje[i])
-        i+=1
+        lista.append(tarea)
+        lista.append(arch)
+        print(lista)
         message=tuple(lista)        
         r.rpush(cola,pickle.dumps(message))
     JOBID += 1
