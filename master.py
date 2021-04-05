@@ -1,7 +1,7 @@
-#!/usr/bin/python3
+#!/usr/local/bin/python3.8
 from xmlrpc.server import SimpleXMLRPCServer
 import logging
-from multiprocessing import Process, Pipe
+from multiprocessing import Process, Queue
 import redis
 import requests
 import pickle
@@ -13,11 +13,11 @@ import warnings
 
 WORKERS = {} #lista de workers
 WORKER_ID = 0 #indice del worker
-JOBID = 0 #idetifi cador del job
+JOBID = 0 #idetificador del job
 r = redis.Redis(host='localhost',port=6379,db=0)
 r.flushdb() #limpiar base de datos
 cola = "colaTareas"
-#server_pipe = Pipe()
+q = Queue()
 
 warnings.filterwarnings("ignore",category=DeprecationWarning)
 
@@ -30,26 +30,25 @@ server = SimpleXMLRPCServer(
 )
 
 
-def start_worker(name,pipe):
+def start_worker(name,q):
     global r
     global cola
-    print("Name: {} Pipe: {}".format(name,pipe))
     while(True):
-        sleep(10)
         value = pickle.loads(r.rpop(cola))
         if(value is not None):
-            #print("Worker {} Value {}".format(name,value))
             #obtener lista de archivos
             archivos = value[2]
             archivos = archivos[1:-1]
             archivos = archivos.split(",")
                 
             if(value[1] in ("run-countwords")): 
-                countWords(name,archivos,pipe)
+                countWords(name,archivos,q)
             elif (value[1] in ("run-wordcout")): 
-                wordCount(name,archivos,pipe)
+                wordCount(name,archivos,q)
+        sleep(5)
+        results()
 
-def countWords(worker,archivos,pipe):
+def countWords(worker,archivos,q):
     result = 0
     for url in archivos:
         curl = pycurl.Curl()
@@ -64,10 +63,9 @@ def countWords(worker,archivos,pipe):
         s = "Worker: {} Longitud de {} es : {}".format(worker,url,result)
         #print(s)
         words.clear()
-    r = (s)
-    pipe.send(r)
+    q.put(s)
 
-def wordCount(url):
+def wordCount(url, q):
     c=pycurl.Curl()
     c.setop(c.URL, url)
     buffer = BytesIO()
@@ -84,24 +82,21 @@ def wordCount(url):
             veces = dic1.pop(word)
             veces += 1
             dic1.setdefault(word, veces)
-        
-    return dic1
+    q.put(dic1)
 
 def create_worker():
-    s = 'Creando worker...'
     global WORKERS
     global WORKER_ID
-    #global server_pipe
-
-    server_pipe, worker_pipe = Pipe()
-    argumentos = (WORKER_ID, worker_pipe)
-    proc = Process(target=start_worker, args=([WORKER_ID,worker_pipe]))
+    global q
+    #result = ''
+    #i=0
+    #while(i < numWorkers):
+    proc = Process(target=start_worker, args=([WORKER_ID,q]))
+    print(proc)
     proc.start()
     WORKERS[WORKER_ID] = proc
-    WORKER_ID += 1
-    result = server_pipe.recv()
-    print("Create Worker: "+str(result))
-    return result
+    WORKER_ID += 1 
+     #   i+=1
 
 def delete_worker(index):
     s = 'Borrando worker... {}'.format(index)
@@ -117,21 +112,35 @@ def list_worker():
     return s
 
 def job(mensaje):
+    #mensaje viene con el formato: job funcion url,url2,..
     global r
     global JOBID
-    lista = [JOBID]
-    for i in mensaje.split():
-        lista.append(i)
-
-    message=tuple(lista)        
-    #r.rpush(cola,*message)
-    r.rpush(cola,pickle.dumps(message))
+    mensaje = mensaje.split(',')
+    i = 2
+    for mensj in mensaje.split():
+        lista = [JOBID]
+        lista.append(mensaje[i])
+        i+=1
+        message=tuple(lista)        
+        r.rpush(cola,pickle.dumps(message))
     JOBID += 1
+
+def results():
+    global q
+    print(q)
+    result = []
+    if(not q.empty()):
+        result.append(q.get())
+    else:
+        result.append("No hay resultados")
+
+    return result
 
 server.register_function(create_worker)
 server.register_function(delete_worker)
 server.register_function(list_worker)
 server.register_function(job)
+server.register_function(results)
 
 try:
     print('Use Control-C to exit')
