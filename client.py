@@ -9,18 +9,17 @@ proxy = xmlrpc.client.ServerProxy('http://localhost:7000')
 
 if(len(sys.argv) == 3):
     #solo puede ser worker create o worker list
-    '''if(sys.argv[2] == "create"):
-        print(proxy.create_worker())'''
+    if(sys.argv[2] == "create"):
+        proxy.create_worker()
     if(sys.argv[2] == "list"):
         print(proxy.list_worker())
     else:
         print("Error de sintaxis")
 elif(len(sys.argv) >= 4):
     #solo puede ser los jobs o worker delete
-    if(sys.argv[2] == "create"):
+    '''if(sys.argv[2] == "create"):
         numWorkers = int(sys.argv[3])
-        print(proxy.create_worker(numWorkers))
-
+        print(proxy.create_worker(numWorkers))'''
     if(sys.argv[1] == "worker") and (sys.argv[2] == "delete"):
         index = int(sys.argv[3])
         proxy.delete_worker(index)
@@ -32,5 +31,8 @@ elif(len(sys.argv) >= 4):
             mensaje+=sys.argv[i]+' '
             i+=1
         proxy.job(mensaje)
+elif(len(sys.argv) == 2):
+    print(proxy.results())
+
 
     

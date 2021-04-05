@@ -34,7 +34,6 @@ def start_worker(name,q):
     global r
     global cola
     while(True):
-        sleep(5)
         value = pickle.loads(r.rpop(cola))
         if(value is not None):
             #obtener lista de archivos
@@ -46,6 +45,7 @@ def start_worker(name,q):
                 countWords(name,archivos,q)
             elif (value[1] in ("run-wordcout")): 
                 wordCount(name,archivos,q)
+        sleep(5)
 
 def countWords(worker,archivos,pipe):
     result = 0
@@ -67,22 +67,19 @@ def countWords(worker,archivos,pipe):
 def wordCount(url):
     return 0
 
-def create_worker(numWorkers):
+def create_worker():
     global WORKERS
     global WORKER_ID
     global q
-    result = ''
-    for i in range(numWorkers):
-        
-        proc = Process(target=start_worker, args=([WORKER_ID,q]))
-        proc.daemon = True
-        proc.start()
-        WORKERS[WORKER_ID] = proc
-        WORKER_ID += 1
-        #result += "\n"+server_pipe.recv()
-        result += '\n'+q.get()
-    print("Create Worker: "+str(result))
-    return result
+    #result = ''
+    #i=0
+    #while(i < numWorkers):
+    proc = Process(target=start_worker, args=([WORKER_ID,q]))
+    print(proc)
+    proc.start()
+    WORKERS[WORKER_ID] = proc
+    WORKER_ID += 1 
+     #   i+=1
 
 def delete_worker(index):
     s = 'Borrando worker... {}'.format(index)
@@ -109,10 +106,22 @@ def job(mensaje):
     r.rpush(cola,pickle.dumps(message))
     JOBID += 1
 
+def results():
+    global q
+    print(q)
+    result = []
+    if(not q.empty()):
+        result.append(q.get())
+    else:
+        result.append("No hay resultados")
+
+    return result
+
 server.register_function(create_worker)
 server.register_function(delete_worker)
 server.register_function(list_worker)
 server.register_function(job)
+server.register_function(results)
 
 try:
     print('Use Control-C to exit')
