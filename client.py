@@ -24,7 +24,7 @@ while True:
         while(i < len(entrada.split())):
             mensaje+=entrada.split()[i]+' '
             i+=1
-        print(mensaje)
+        #print(mensaje)
         proxy.job(mensaje)
     else:
         if(proxy.results()):

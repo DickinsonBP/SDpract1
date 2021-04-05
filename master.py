@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3.8
 from xmlrpc.server import SimpleXMLRPCServer
 import logging
 from multiprocessing import Process, Queue
@@ -18,6 +18,9 @@ r = redis.Redis(host='localhost',port=6379,db=0)
 r.flushdb() #limpiar base de datos
 cola = "colaTareas"
 q = Queue()
+#diccionario para controlar las tareas
+numTareas = {}
+
 
 warnings.filterwarnings("ignore",category=DeprecationWarning)
 
@@ -29,54 +32,82 @@ server = SimpleXMLRPCServer(
     allow_none=True
 )
 
+
 def start_worker(name,q):
     global r
     global cola
+    global numTareas
+    value = tuple()
     while(True):
         for i in r.keys():
             if(str(i) in "b'colaTareas'"):
                 value = pickle.loads(r.rpop(cola))
-                #obtener lista de archivos
-                archivos = value[2]
-                archivos = archivos[1:-1]
-                archivos = archivos.split(",")
-                print(archivos)
-                    
                 if(value[1] in ("run-countwords")): 
-                    countWords(name,archivos,q)
-                elif (value[1] in ("run-wordcout")): 
-                    wordCount(name,archivos,q)
+                    result = countWords(value[2])
+                    print("Count words: {}".format(result))
+                elif (value[1] in ("run-wordcount")):
+                    result = wordCount(value[2])
+                    print("Word Count: {}".format(result))
+                #diccionario no vacio
+                if(numTareas):
+                    print("Antes de actualizar {}".format(numTareas))
+                    veces = numTareas.get(value[0])
+                    veces -= 1
+                    #actualizar numero de tareas
+                    numTareas.update({value[0]:veces})
+                    print("Despues de actualizar {}".format(numTareas))
+                else:
+                    print("Diccionario vacio {}".format(numTareas))
+        
+        sleep(1.5)
+        #results()
 
-def countWords(worker,archivos,q):
+def countWords(url):
     result = 0
-    for url in archivos:
-        curl = pycurl.Curl()
-        buffer = BytesIO()
-        curl.setopt(curl.URL,url)
-        curl.setopt(curl.WRITEDATA,buffer)
-        curl.perform()
-        curl.close()
-        body = buffer.getvalue()
-        words = body.split()
-        result += len(words)
-        #print(s)
-        words.clear()
-    s = "Worker: {} Longitud de {} es : {}".format(worker,archivos,result)
-    q.put(s)
+    curl = pycurl.Curl()
+    buffer = BytesIO()
+    curl.setopt(curl.URL,url)
+    curl.setopt(curl.WRITEDATA,buffer)
+    curl.perform()
+    curl.close()
+    body = buffer.getvalue()
+    words = body.split()
+    result = len(words)
+    #s = "Worker: {} Longitud de {} es : {}".format(worker,url,result)
+     #print(s)
+    words.clear()
+    return result
 
 def wordCount(url):
-    return 0
+    dict1 = {}
+    curl = pycurl.Curl()
+    buffer = BytesIO()
+    curl.setopt(curl.URL,url)
+    curl.setopt(curl.WRITEDATA,buffer)
+    curl.perform()
+    curl.close()
+    body = buffer.getvalue()
+    words = body.split()
+    for word in words:
+        i=0
+        if word not in dict1:
+            i += 1
+            dict1.setdefault(word, i)
+        else:
+            veces = dict1.get(word)
+            veces += 1
+            dict1.update({word:veces})
+    return dict1
 
 def create_worker():
     global WORKERS
     global WORKER_ID
     global q
-    
     proc = Process(target=start_worker, args=([WORKER_ID,q]))
     print(proc)
     proc.start()
     WORKERS[WORKER_ID] = proc
-    WORKER_ID += 1
+    WORKER_ID += 1 
 
 def delete_worker(index):
     s = 'Borrando worker... {}'.format(index)
@@ -85,7 +116,6 @@ def delete_worker(index):
     global WORKERS
 
     WORKERS[index].terminate()
-    WORKERS.pop(index)
     return s
 
 def list_worker():
@@ -93,16 +123,23 @@ def list_worker():
     return s
 
 def job(mensaje):
+    #mensaje viene con el formato: funcion url,url2,..
     global r
     global JOBID
-    print(mensaje)
-    lista = [JOBID]
-    for i in mensaje.split():
-        lista.append(i)
-
-    message=tuple(lista)        
-    #r.rpush(cola,*message)
-    r.rpush(cola,pickle.dumps(message))
+    global numTareas
+    mensaje = mensaje.split()
+    tarea = mensaje[0]
+    archivos = mensaje[1]
+    archivos = archivos[1:-1]
+    archivos = archivos.split(",")
+    for arch in archivos:
+        lista = [JOBID]
+        lista.append(tarea)
+        lista.append(arch)
+        message=tuple(lista)        
+        r.rpush(cola,pickle.dumps(message))
+    numTareas.setdefault(JOBID,len(archivos))
+    print("Tareas: {}".format(numTareas))
     JOBID += 1
 
 def results():
