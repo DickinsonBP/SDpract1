@@ -1,7 +1,7 @@
 #!/usr/bin/python3.8
 from xmlrpc.server import SimpleXMLRPCServer
 import logging
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Manager
 import redis
 import requests
 import pickle
@@ -10,7 +10,6 @@ from io import BytesIO
 from time import sleep
 import warnings
 
-
 WORKERS = {} #lista de workers
 WORKER_ID = 0 #indice del worker
 JOBID = 0 #idetificador del job
@@ -18,8 +17,9 @@ r = redis.Redis(host='localhost',port=6379,db=0)
 r.flushdb() #limpiar base de datos
 cola = "colaTareas"
 q = Queue()
-#diccionario para controlar las tareas
-numTareas = {}
+#numTareas = {} #diccionario para controlar las tareas
+manager = Manager()
+numTareas = manager.dict()
 
 
 warnings.filterwarnings("ignore",category=DeprecationWarning)
@@ -39,28 +39,39 @@ def start_worker(name,q):
     global numTareas
     value = tuple()
     while(True):
-        for i in r.keys():
-            if(str(i) in "b'colaTareas'"):
-                value = pickle.loads(r.rpop(cola))
-                if(value[1] in ("run-countwords")): 
-                    result = countWords(value[2])
-                    print("Count words: {}".format(result))
-                elif (value[1] in ("run-wordcount")):
-                    result = wordCount(value[2])
-                    print("Word Count: {}".format(result))
-                #diccionario no vacio
-                if(numTareas):
-                    print("Antes de actualizar {}".format(numTareas))
-                    veces = numTareas.get(value[0])
-                    veces -= 1
-                    #actualizar numero de tareas
-                    numTareas.update({value[0]:veces})
-                    print("Despues de actualizar {}".format(numTareas))
-                else:
-                    print("Diccionario vacio {}".format(numTareas))
-        
-        sleep(1.5)
-        #results()
+        value = r.rpop(cola)
+        if(value is not None):
+            value = pickle.loads(value)
+            print("Value: {}".format(value))
+            if(value[1] in ("run-countwords")):
+                print("Tareas antes: {}".format(numTareas))
+                result = countWords(value[2])
+                print("Worker: {} Count words: {}".format(name,result))
+                actualizarTareas(value[0])
+                #actualizarCountwords(value[0],result)
+                #print("Tareas: {} Resultados: {}".format(numTareas,resultadoTareas))
+                print("Tareas despues: {}".format(numTareas))
+            elif (value[1] in ("run-wordcount")):
+                print("Tareas antes: {}".format(numTareas))
+                result = wordCount(value[2])
+                print("Worker: {} Word Count: {}".format(name,result))
+                actualizarTareas(value[0])
+                print("Tareas despues: {}".format(numTareas))
+               # actualizarWordcount(value[0],result)
+                #print("Tareas: {} Resultados: {}".format(numTareas,resultadoTareas))    
+
+def actualizarTareas(id):
+    global numTareas
+    #si no esta vacio el diccionario
+    if(numTareas):
+        veces = numTareas.get(id)
+        if(veces is not None) and (veces != 0):
+            veces = veces - 1
+            if(veces == 0):
+                del numTareas[id]
+            else:
+                numTareas.update({id:veces})
+            
 
 def countWords(url):
     result = 0
@@ -141,13 +152,13 @@ def job(mensaje):
     numTareas.setdefault(JOBID,len(archivos))
     print("Tareas: {}".format(numTareas))
     JOBID += 1
+    #sleep(1.5)
 
 def results():
     global q
     result = []
     while(not q.empty()):
         result.append(q.get())
-
     return result
 
 server.register_function(create_worker)
