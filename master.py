@@ -20,7 +20,7 @@ q = Queue()
 #numTareas = {} #diccionario para controlar las tareas
 manager = Manager()
 numTareas = manager.dict()
-
+resultados = manager.dict()
 
 warnings.filterwarnings("ignore",category=DeprecationWarning)
 
@@ -37,30 +37,62 @@ def start_worker(name,q):
     global r
     global cola
     global numTareas
+    global resultados
     value = tuple()
     while(True):
         value = r.rpop(cola)
+        sleep(2)
         if(value is not None):
             value = pickle.loads(value)
-            print("Value: {}".format(value))
             if(value[1] in ("run-countwords")):
-                print("Tareas antes: {}".format(numTareas))
                 result = countWords(value[2])
-                print("Worker: {} Count words: {}".format(name,result))
-                actualizarTareas(value[0])
-                #actualizarCountwords(value[0],result)
-                #print("Tareas: {} Resultados: {}".format(numTareas,resultadoTareas))
-                print("Tareas despues: {}".format(numTareas))
+                actualizarCountwords(value[0],result)
+                actualizarTareas(value[0],q)
             elif (value[1] in ("run-wordcount")):
-                print("Tareas antes: {}".format(numTareas))
                 result = wordCount(value[2])
-                print("Worker: {} Word Count: {}".format(name,result))
-                actualizarTareas(value[0])
-                print("Tareas despues: {}".format(numTareas))
-               # actualizarWordcount(value[0],result)
-                #print("Tareas: {} Resultados: {}".format(numTareas,resultadoTareas))    
+                actualizarWordcount(value[0],result)
+                actualizarTareas(value[0],q)    
 
-def actualizarTareas(id):
+def actualizarCountwords(id, result):
+    global resultados
+    if(resultados):
+        value = resultados.get(id)
+        if(value is not None):
+            value = value + result
+            resultados.update({id:value})
+        else:
+            resultados.setdefault(id,result)
+    else:
+        resultados.setdefault(id,result)
+
+def actualizarWordcount(id, result):
+    global resultados
+    #print("Resultados: {} \nResult: {}".format(resultados,result))
+    if(resultados):
+        value = resultados.get(id)
+        #value es un diccionario
+        print("Value: {}".format(value))
+        if(value):
+            for j in result.keys():
+                if(j in value.keys()):
+                    #si la misma clave esta en el diccionario
+                    res = value.get(j) + result.get(j)
+                    value.update({j:res})
+                    resultados.update({id:value})
+                else:
+                    #id nuevo
+                    value.setdefault(j,result.get(j))
+                    resultados.update({id:value})
+        else:
+            resultados.update({id:result})
+    else:
+        #no hay nada en los resultados
+        resultados.setdefault(id,result)
+    
+    print("Actualizar Word count: {}".format(resultados))
+
+
+def actualizarTareas(id,q):
     global numTareas
     #si no esta vacio el diccionario
     if(numTareas):
@@ -69,6 +101,8 @@ def actualizarTareas(id):
             veces = veces - 1
             if(veces == 0):
                 del numTareas[id]
+                q.put(id)
+                results()
             else:
                 numTareas.update({id:veces})
             
@@ -84,8 +118,6 @@ def countWords(url):
     body = buffer.getvalue()
     words = body.split()
     result = len(words)
-    #s = "Worker: {} Longitud de {} es : {}".format(worker,url,result)
-     #print(s)
     words.clear()
     return result
 
@@ -150,15 +182,20 @@ def job(mensaje):
         message=tuple(lista)        
         r.rpush(cola,pickle.dumps(message))
     numTareas.setdefault(JOBID,len(archivos))
-    print("Tareas: {}".format(numTareas))
+    #print("Tareas: {}".format(numTareas))
     JOBID += 1
     #sleep(1.5)
 
 def results():
+    global resultados
     global q
+    print("Resultados: {}".format(resultados))
     result = []
     while(not q.empty()):
-        result.append(q.get())
+        id = q.get()
+        result.append(resultados.get(id))
+    if(result):
+        print(result)
     return result
 
 server.register_function(create_worker)
