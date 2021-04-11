@@ -41,7 +41,7 @@ def start_worker(name,q):
     value = tuple()
     while(True):
         value = r.rpop(cola)
-        sleep(2)
+        sleep(0.5)
         if(value is not None):
             value = pickle.loads(value)
             if(value[1] in ("run-countwords")):
@@ -57,6 +57,7 @@ def actualizarCountwords(id, result):
     global resultados
     if(resultados):
         value = resultados.get(id)
+        print(value)
         if(value is not None):
             value = value + result
             resultados.update({id:value})
@@ -71,7 +72,7 @@ def actualizarWordcount(id, result):
     if(resultados):
         value = resultados.get(id)
         #value es un diccionario
-        print("Value: {}".format(value))
+        #print("Value: {}".format(value))
         if(value):
             for j in result.keys():
                 if(j in value.keys()):
@@ -89,7 +90,7 @@ def actualizarWordcount(id, result):
         #no hay nada en los resultados
         resultados.setdefault(id,result)
     
-    print("Actualizar Word count: {}".format(resultados))
+    #print("Actualizar Word count: {}".format(resultados))
 
 
 def actualizarTareas(id,q):
@@ -105,6 +106,7 @@ def actualizarTareas(id,q):
                 results()
             else:
                 numTareas.update({id:veces})
+    #print(numTareas)
             
 
 def countWords(url):
@@ -189,11 +191,21 @@ def job(mensaje):
 def results():
     global resultados
     global q
-    print("Resultados: {}".format(resultados))
+    #print("Resultados: {}".format(resultados))
     result = []
     while(not q.empty()):
         id = q.get()
-        result.append(resultados.get(id))
+        #id = str(id)
+        print("Id: {}\nResultados: {}".format(id,resultados))
+        res = resultados.get(id)
+        if(type(res) == type(dict())):
+            #es un diccionario
+            result.append("Word Count")
+            for i in res:
+                result.append(i)
+        else:
+            result.append("Count Words")
+            result.append(resultados.get(id))
     if(result):
         print(result)
     return result
