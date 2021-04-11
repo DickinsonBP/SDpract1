@@ -8,6 +8,9 @@ import sys
 proxy = xmlrpc.client.ServerProxy('http://localhost:7000')
 
 while True:
+    resultados = proxy.results()
+    print("Resultados: {}".format(resultados))
+        
     entrada = input(">")
     if(entrada == "exit"):
         break
@@ -26,9 +29,7 @@ while True:
             i+=1
         #print(mensaje)
         proxy.job(mensaje)
-    else:
-        if(proxy.results()):
-            print(proxy.results())
+
 
         
 
