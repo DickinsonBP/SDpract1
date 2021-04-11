@@ -119,6 +119,7 @@ def countWords(url):
     curl.close()
     body = buffer.getvalue()
     words = body.split()
+    #print("Body: {}\nWords: {}".format(body,words))
     result = len(words)
     words.clear()
     return result
@@ -132,8 +133,8 @@ def wordCount(url):
     curl.perform()
     curl.close()
     body = buffer.getvalue()
-    words = body.split()
-    for word in words:
+    words = body.decode()
+    for word in words.split():
         i=0
         if word not in dict1:
             i += 1
@@ -196,18 +197,18 @@ def results():
     while(not q.empty()):
         id = q.get()
         #id = str(id)
-        print("Id: {}\nResultados: {}".format(id,resultados))
+        #print("Id: {}\nResultados: {}".format(id,resultados))
         res = resultados.get(id)
         if(type(res) == type(dict())):
             #es un diccionario
             result.append("Word Count")
             for i in res:
-                result.append(i)
+                result.append({i:res.get(i)})
         else:
             result.append("Count Words")
             result.append(resultados.get(id))
-    if(result):
-        print(result)
+    #if(result):
+    #    print(result)
     return result
 
 server.register_function(create_worker)
