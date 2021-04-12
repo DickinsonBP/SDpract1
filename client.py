@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 import xmlrpc.client
-import sys
 
 #client.py worker create = 3
 #client.py worker delete  x = 4
@@ -9,7 +8,8 @@ proxy = xmlrpc.client.ServerProxy('http://localhost:7000')
 
 while True:
     resultados = proxy.results()
-    print("Resultados: {}".format(resultados))
+    if(resultados):
+        print("Resultados: {}".format(resultados))
         
     entrada = input(">")
     if(entrada == "exit"):

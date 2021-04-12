@@ -57,7 +57,6 @@ def actualizarCountwords(id, result):
     global resultados
     if(resultados):
         value = resultados.get(id)
-        print(value)
         if(value is not None):
             value = value + result
             resultados.update({id:value})
@@ -68,11 +67,8 @@ def actualizarCountwords(id, result):
 
 def actualizarWordcount(id, result):
     global resultados
-    #print("Resultados: {} \nResult: {}".format(resultados,result))
     if(resultados):
         value = resultados.get(id)
-        #value es un diccionario
-        #print("Value: {}".format(value))
         if(value):
             for j in result.keys():
                 if(j in value.keys()):
@@ -89,8 +85,6 @@ def actualizarWordcount(id, result):
     else:
         #no hay nada en los resultados
         resultados.setdefault(id,result)
-    
-    #print("Actualizar Word count: {}".format(resultados))
 
 
 def actualizarTareas(id,q):
@@ -106,7 +100,6 @@ def actualizarTareas(id,q):
                 results()
             else:
                 numTareas.update({id:veces})
-    #print(numTareas)
             
 
 def countWords(url):
@@ -119,7 +112,6 @@ def countWords(url):
     curl.close()
     body = buffer.getvalue()
     words = body.split()
-    #print("Body: {}\nWords: {}".format(body,words))
     result = len(words)
     words.clear()
     return result
@@ -157,8 +149,6 @@ def create_worker():
 
 def delete_worker(index):
     s = 'Borrando worker... {}'.format(index)
-    '''work = WORKERS[index]
-    work.terminate()'''
     global WORKERS
 
     WORKERS[index].terminate()
@@ -185,19 +175,15 @@ def job(mensaje):
         message=tuple(lista)        
         r.rpush(cola,pickle.dumps(message))
     numTareas.setdefault(JOBID,len(archivos))
-    #print("Tareas: {}".format(numTareas))
     JOBID += 1
-    #sleep(1.5)
+
 
 def results():
     global resultados
     global q
-    #print("Resultados: {}".format(resultados))
     result = []
     while(not q.empty()):
         id = q.get()
-        #id = str(id)
-        #print("Id: {}\nResultados: {}".format(id,resultados))
         res = resultados.get(id)
         if(type(res) == type(dict())):
             #es un diccionario
@@ -207,8 +193,6 @@ def results():
         else:
             result.append("Count Words")
             result.append(resultados.get(id))
-    #if(result):
-    #    print(result)
     return result
 
 server.register_function(create_worker)
