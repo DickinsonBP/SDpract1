@@ -14,8 +14,12 @@ while True:
     entrada = input(">")
     if(entrada == "exit"):
         break
-    elif(entrada == "worker create"):
-        proxy.create_worker()
+    elif("worker create" in entrada) and (len(entrada) == 13):
+        proxy.create_worker(1)
+    elif("worker create" in entrada) and (len(entrada) > 13):
+        num_workers = list(entrada.split())[2]
+        num_workers = int(num_workers)
+        proxy.create_worker(num_workers)
     elif(entrada == "worker list"):
         print(proxy.list_worker())
     elif(len(entrada.split()) == 3) and (entrada.split()[1] == "delete"):

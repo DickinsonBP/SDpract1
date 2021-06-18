@@ -67,6 +67,7 @@ def actualizarCountwords(id, result):
 
 def actualizarWordcount(id, result):
     global resultados
+    f = open('resultados.txt','w')
     if(resultados):
         value = resultados.get(id)
         if(value):
@@ -76,15 +77,18 @@ def actualizarWordcount(id, result):
                     res = value.get(j) + result.get(j)
                     value.update({j:res})
                     resultados.update({id:value})
+                    f.write(str(resultados))
                 else:
                     #id nuevo
                     value.setdefault(j,result.get(j))
                     resultados.update({id:value})
+                    f.write(str(resultados))
         else:
             resultados.update({id:result})
     else:
         #no hay nada en los resultados
         resultados.setdefault(id,result)
+        f.write(str(resultados))
 
 
 def actualizarTareas(id,q):
@@ -137,15 +141,15 @@ def wordCount(url):
             dict1.update({word:veces})
     return dict1
 
-def create_worker():
+def create_worker(num_workers):
     global WORKERS
     global WORKER_ID
     global q
-    proc = Process(target=start_worker, args=([WORKER_ID,q]))
-    print(proc)
-    proc.start()
-    WORKERS[WORKER_ID] = proc
-    WORKER_ID += 1 
+    for i in range(num_workers):
+        proc = Process(target=start_worker, args=([WORKER_ID,q]))
+        proc.start()
+        WORKERS[WORKER_ID] = proc
+        WORKER_ID += 1 
 
 def delete_worker(index):
     s = 'Borrando worker... {}'.format(index)
