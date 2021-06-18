@@ -22,8 +22,6 @@ manager = Manager()
 numTareas = manager.dict()
 resultados = manager.dict()
 
-warnings.filterwarnings("ignore",category=DeprecationWarning)
-
 logging.basicConfig(level=logging.INFO)
 
 server = SimpleXMLRPCServer(
