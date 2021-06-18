@@ -34,6 +34,10 @@ while True:
         #print(mensaje)
         proxy.job(mensaje)
 
+    resultados = proxy.results()
+    if(resultados):
+        print("Resultados: {}".format(resultados))
+
 
         
 
